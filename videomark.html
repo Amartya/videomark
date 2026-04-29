@@ -350,7 +350,7 @@
 </div>
 
 <!-- STAGE -->
-<div id="stage">
+<div id="stage" class="show-cursor">
   <video id="video" preload="auto"></video>
 </div>
 
@@ -411,6 +411,9 @@ let overlayVisible = false;
 let cursorTimer = null;
 let videoLoaded = false;
 let hintTimer = null;
+let videoBaseName = 'videomark';
+let exportCount = 0;
+let hasUnexportedBookmarks = false;
 
 /* ── FILE LOAD ── */
 function loadFile(file) {
@@ -420,6 +423,9 @@ function loadFile(file) {
   video.load();
   loader.classList.add('hidden');
   videoLoaded = true;
+  videoBaseName = file.name.replace(/\.[^/.]+$/, '');
+  exportCount = 0;
+  document.title = `VM - ${file.name}`;
   showHintBriefly();
 }
 
@@ -474,6 +480,7 @@ function addBookmark(analyst) {
   const t = video.currentTime;
   bookmarks.push({ analyst, time: t, id: Date.now() });
   bookmarks.sort((a,b) => a.time - b.time);
+  hasUnexportedBookmarks = true;
   showFlash(analyst);
   renderBookmarks();
   renderScrubberPips();
@@ -576,8 +583,18 @@ document.getElementById('exportBtn').addEventListener('click', () => {
   const rows = ['Analyst,Timestamp,Seconds'];
   bookmarks.forEach(b => rows.push(`${b.analyst},${fmtFull(b.time)},${b.time.toFixed(3)}`));
   const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+  const d = new Date();
+  const date = `${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}-${d.getFullYear()}`;
+  const suffix = exportCount === 0 ? '' : `_${exportCount}`;
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-  a.download = 'videomark-bookmarks.csv'; a.click();
+  a.download = `${videoBaseName}_${date}${suffix}.csv`; a.click();
+  exportCount++;
+  hasUnexportedBookmarks = false;
+});
+
+window.addEventListener('beforeunload', e => {
+  e.preventDefault();
+  e.returnValue = '';
 });
 
 /* ── KEYBOARD ── */
