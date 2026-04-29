@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VideoMark — Multi-Analyst Review</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0b;
+    --surface: #111114;
+    --border: #222228;
+    --border-bright: #333340;
+    --text: #d4d4dc;
+    --text-dim: #5a5a6e;
+    --text-bright: #f0f0f8;
+    --A1: #f4a443;
+    --A2: #4fc1e8;
+    --A3: #a8e06a;
+    --A4: #e06ab5;
+    --overlay-bg: rgba(10,10,11,0.92);
+    --scrubber-h: 3px;
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    overflow: hidden;
+  }
+
+  /* ── DROP ZONE / LOAD SCREEN ── */
+  #loader {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 28px; z-index: 100;
+    background: var(--bg);
+    transition: opacity 0.4s;
+  }
+  #loader.hidden { opacity: 0; pointer-events: none; }
+
+  .logo {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px; font-weight: 600;
+    letter-spacing: 0.25em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+  .logo span { color: var(--A1); }
+
+  .drop-zone {
+    width: 420px; height: 260px;
+    border: 1.5px dashed var(--border-bright);
+    border-radius: 4px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 14px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+  }
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--A1);
+    background: rgba(244,164,67,0.04);
+  }
+  .drop-zone input {
+    position: absolute; inset: 0;
+    opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .drop-icon {
+    width: 44px; height: 44px;
+    border: 1.5px solid var(--border-bright);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-dim); font-size: 20px;
+  }
+  .drop-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px; color: var(--text-dim);
+    text-align: center; line-height: 1.8;
+  }
+  .drop-label strong { color: var(--text); font-weight: 500; display: block; margin-bottom: 4px; font-size: 13px; }
+
+  .key-legend {
+    display: flex; gap: 20px;
+  }
+  .analyst-pill {
+    display: flex; align-items: center; gap: 8px;
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+    color: var(--text-dim);
+  }
+  .analyst-pill .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .analyst-pill kbd {
+    background: var(--surface);
+    border: 1px solid var(--border-bright);
+    border-radius: 3px;
+    padding: 1px 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; color: var(--text-dim);
+    margin-left: 4px;
+  }
+
+  /* ── VIDEO STAGE ── */
+  #stage {
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  #video {
+    width: 100%; height: 100%;
+    object-fit: contain;
+    background: #000;
+    cursor: none;
+  }
+  #stage.show-cursor #video { cursor: default; }
+
+  /* ── BOOKMARK FLASH ── */
+  .flash {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.15em;
+    padding: 6px 14px;
+    border-radius: 3px;
+    pointer-events: none;
+    opacity: 0;
+    z-index: 200;
+    transition: opacity 0.1s;
+  }
+  .flash.show { opacity: 1; transition: opacity 0s; }
+
+  /* ── OVERLAY PANEL ── */
+  #overlay {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--overlay-bg);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border);
+    z-index: 50;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    padding: 0 0 12px 0;
+  }
+  #overlay.visible { transform: translateY(0); }
+
+  /* scrubber bar */
+  .scrubber-track {
+    width: 100%;
+    height: var(--scrubber-h);
+    background: var(--border);
+    position: relative;
+    cursor: pointer;
+  }
+  .scrubber-fill {
+    position: absolute; top: 0; left: 0; height: 100%;
+    background: var(--border-bright);
+    pointer-events: none;
+  }
+  .scrubber-markers {
+    position: absolute; inset: 0;
+    pointer-events: none;
+  }
+  .scrubber-pip {
+    position: absolute; top: -3px;
+    width: 3px; height: 9px;
+    border-radius: 1px;
+    transform: translateX(-50%);
+  }
+
+  /* header row */
+  .overlay-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 20px 8px;
+  }
+  .overlay-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 0.2em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+  .overlay-controls {
+    display: flex; align-items: center; gap: 16px;
+  }
+  .filter-btns { display: flex; gap: 6px; }
+  .filter-btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; font-weight: 600;
+    padding: 3px 9px; border-radius: 2px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: transparent;
+    opacity: 0.45;
+  }
+  .filter-btn.active { opacity: 1; border-color: currentColor; }
+  .export-btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; color: var(--text-dim);
+    background: none; border: 1px solid var(--border-bright);
+    border-radius: 2px; padding: 3px 10px;
+    cursor: pointer; letter-spacing: 0.1em;
+    transition: all 0.15s;
+  }
+  .export-btn:hover { border-color: var(--text-dim); color: var(--text); }
+
+  /* bookmark list */
+  .bookmark-list {
+    max-height: 180px;
+    overflow-y: auto;
+    padding: 0 20px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-bright) transparent;
+  }
+  .bookmark-list:empty::after {
+    content: 'No bookmarks yet — press 1–4 to mark a moment';
+    display: block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; color: var(--text-dim);
+    padding: 10px 0;
+  }
+
+  .bookmark-row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.1s;
+    border-radius: 2px;
+  }
+  .bookmark-row:hover { background: rgba(255,255,255,0.02); }
+  .bookmark-row:last-child { border-bottom: none; }
+
+  .bm-analyst {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.1em;
+    min-width: 28px;
+  }
+  .bm-ts {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px; color: var(--text);
+    min-width: 68px;
+  }
+  .bm-bar {
+    flex: 1; height: 1px;
+    background: var(--border);
+    position: relative;
+  }
+  .bm-pos-dot {
+    position: absolute; top: -3px;
+    width: 7px; height: 7px; border-radius: 50%;
+    transform: translateX(-50%);
+  }
+  .bm-note {
+    font-size: 11px; color: var(--text-dim);
+    font-style: italic;
+    min-width: 80px; text-align: right;
+  }
+  .bm-count {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; color: var(--text-dim);
+    min-width: 20px; text-align: right;
+  }
+
+  /* ── TOGGLE HINT ── */
+  #hint {
+    position: fixed; bottom: 14px; right: 18px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; color: var(--text-dim);
+    letter-spacing: 0.12em;
+    z-index: 60;
+    pointer-events: none;
+    opacity: 0.5;
+    transition: opacity 0.3s;
+  }
+  #hint.hide { opacity: 0; }
+
+  /* ── PLAYBACK LABEL ── */
+  #playtag {
+    position: fixed; top: 16px; left: 20px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; color: rgba(255,255,255,0.35);
+    letter-spacing: 0.12em;
+    z-index: 60;
+    pointer-events: none;
+    transition: opacity 0.5s;
+  }
+
+  /* analyst color helpers */
+  .c-A1 { color: var(--A1); }
+  .c-A2 { color: var(--A2); }
+  .c-A3 { color: var(--A3); }
+  .c-A4 { color: var(--A4); }
+  .bg-A1 { background: var(--A1); }
+  .bg-A2 { background: var(--A2); }
+  .bg-A3 { background: var(--A3); }
+  .bg-A4 { background: var(--A4); }
+  .border-A1 { border-color: var(--A1); }
+  .border-A2 { border-color: var(--A2); }
+  .border-A3 { border-color: var(--A3); }
+  .border-A4 { border-color: var(--A4); }
+</style>
+</head>
+<body>
+
+<!-- LOAD SCREEN -->
+<div id="loader">
+  <div class="logo">Video<span>Mark</span> — Multi-Analyst Review</div>
+
+  <div class="drop-zone" id="dropZone">
+    <input type="file" id="fileInput" accept="video/*">
+    <div class="drop-icon">▶</div>
+    <div class="drop-label">
+      <strong>Drop a video file here</strong>
+      or click to browse
+    </div>
+  </div>
+
+  <div class="key-legend">
+    <div class="analyst-pill">
+      <div class="dot" style="background:var(--A1)"></div> A1 <kbd>1</kbd>
+    </div>
+    <div class="analyst-pill">
+      <div class="dot" style="background:var(--A2)"></div> A2 <kbd>2</kbd>
+    </div>
+    <div class="analyst-pill">
+      <div class="dot" style="background:var(--A3)"></div> A3 <kbd>3</kbd>
+    </div>
+    <div class="analyst-pill">
+      <div class="dot" style="background:var(--A4)"></div> A4 <kbd>4</kbd>
+    </div>
+    <div class="analyst-pill" style="margin-left:12px">
+      <span>Toggle overlay</span> <kbd>H</kbd>
+    </div>
+    <div class="analyst-pill">
+      <span>Play/Pause</span> <kbd>Space</kbd>
+    </div>
+  </div>
+</div>
+
+<!-- STAGE -->
+<div id="stage">
+  <video id="video" preload="auto"></video>
+</div>
+
+<!-- FLASH NOTIFICATION -->
+<div class="flash" id="flash"></div>
+
+<!-- PLAYBACK TIME TAG -->
+<div id="playtag">00:00:00</div>
+
+<!-- HINT -->
+<div id="hint">H — toggle overlay</div>
+
+<!-- OVERLAY -->
+<div id="overlay">
+  <div class="scrubber-track" id="scrubberTrack">
+    <div class="scrubber-fill" id="scrubberFill"></div>
+    <div class="scrubber-markers" id="scrubberMarkers"></div>
+  </div>
+
+  <div class="overlay-header">
+    <div class="overlay-title">Bookmarks</div>
+    <div class="overlay-controls">
+      <div class="filter-btns" id="filterBtns">
+        <button class="filter-btn c-A1 active" data-analyst="A1">A1</button>
+        <button class="filter-btn c-A2 active" data-analyst="A2">A2</button>
+        <button class="filter-btn c-A3 active" data-analyst="A3">A3</button>
+        <button class="filter-btn c-A4 active" data-analyst="A4">A4</button>
+      </div>
+      <button class="export-btn" id="exportBtn">↓ Export CSV</button>
+    </div>
+  </div>
+
+  <div class="bookmark-list" id="bookmarkList"></div>
+</div>
+
+<script>
+const video    = document.getElementById('video');
+const loader   = document.getElementById('loader');
+const overlay  = document.getElementById('overlay');
+const hint     = document.getElementById('hint');
+const flash    = document.getElementById('flash');
+const playtag  = document.getElementById('playtag');
+const scrubberFill    = document.getElementById('scrubberFill');
+const scrubberMarkers = document.getElementById('scrubberMarkers');
+const bookmarkList    = document.getElementById('bookmarkList');
+const scrubberTrack   = document.getElementById('scrubberTrack');
+const dropZone  = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+
+const ANALYSTS = {
+  '1': 'A1', '2': 'A2', '3': 'A3', '4': 'A4'
+};
+const COLORS = { A1: '#f4a443', A2: '#4fc1e8', A3: '#a8e06a', A4: '#e06ab5' };
+
+let bookmarks = [];
+let activeFilters = new Set(['A1','A2','A3','A4']);
+let overlayVisible = false;
+let cursorTimer = null;
+let videoLoaded = false;
+let hintTimer = null;
+
+/* ── FILE LOAD ── */
+function loadFile(file) {
+  if (!file || !file.type.startsWith('video/')) return;
+  const url = URL.createObjectURL(file);
+  video.src = url;
+  video.load();
+  loader.classList.add('hidden');
+  videoLoaded = true;
+  showHintBriefly();
+}
+
+fileInput.addEventListener('change', e => loadFile(e.target.files[0]));
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('drag-over');
+  loadFile(e.dataTransfer.files[0]);
+});
+
+/* ── CURSOR AUTO-HIDE ── */
+function resetCursor() {
+  document.getElementById('stage').classList.add('show-cursor');
+  clearTimeout(cursorTimer);
+  cursorTimer = setTimeout(() => {
+    document.getElementById('stage').classList.remove('show-cursor');
+  }, 2500);
+}
+document.addEventListener('mousemove', resetCursor);
+
+/* ── FORMAT TIME ── */
+function fmt(s) {
+  s = Math.floor(s);
+  const h = Math.floor(s/3600);
+  const m = Math.floor((s%3600)/60);
+  const sec = s%60;
+  if (h > 0) return `${h}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+  return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+}
+function fmtFull(s) {
+  s = Math.floor(s);
+  return `${String(Math.floor(s/3600)).padStart(2,'0')}:${String(Math.floor((s%3600)/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+}
+
+/* ── FLASH ── */
+let flashTimer;
+function showFlash(analyst) {
+  const c = COLORS[analyst];
+  flash.textContent = `● ${analyst}  ${fmtFull(video.currentTime)}`;
+  flash.style.color = c;
+  flash.style.background = `${c}18`;
+  flash.style.border = `1px solid ${c}60`;
+  flash.classList.add('show');
+  clearTimeout(flashTimer);
+  flashTimer = setTimeout(() => flash.classList.remove('show'), 900);
+}
+
+/* ── BOOKMARK ── */
+function addBookmark(analyst) {
+  if (!videoLoaded) return;
+  const t = video.currentTime;
+  bookmarks.push({ analyst, time: t, id: Date.now() });
+  bookmarks.sort((a,b) => a.time - b.time);
+  showFlash(analyst);
+  renderBookmarks();
+  renderScrubberPips();
+}
+
+/* ── RENDER BOOKMARKS ── */
+function renderBookmarks() {
+  bookmarkList.innerHTML = '';
+  const dur = video.duration || 1;
+  const filtered = bookmarks.filter(b => activeFilters.has(b.analyst));
+
+  filtered.forEach(b => {
+    const row = document.createElement('div');
+    row.className = 'bookmark-row';
+    const pct = (b.time/dur*100).toFixed(2);
+    const c = COLORS[b.analyst];
+    row.innerHTML = `
+      <span class="bm-analyst" style="color:${c}">${b.analyst}</span>
+      <span class="bm-ts">${fmtFull(b.time)}</span>
+      <div class="bm-bar">
+        <div class="bm-pos-dot" style="left:${pct}%;background:${c}"></div>
+      </div>
+    `;
+    row.addEventListener('click', () => {
+      video.currentTime = b.time;
+    });
+    bookmarkList.appendChild(row);
+  });
+}
+
+/* ── SCRUBBER PIPS ── */
+function renderScrubberPips() {
+  scrubberMarkers.innerHTML = '';
+  const dur = video.duration || 1;
+  bookmarks.forEach(b => {
+    const pip = document.createElement('div');
+    pip.className = 'scrubber-pip';
+    pip.style.left = (b.time/dur*100)+'%';
+    pip.style.background = COLORS[b.analyst];
+    scrubberMarkers.appendChild(pip);
+  });
+}
+
+/* ── SCRUBBER CLICK ── */
+scrubberTrack.addEventListener('click', e => {
+  if (!videoLoaded || !video.duration) return;
+  const rect = scrubberTrack.getBoundingClientRect();
+  const pct = (e.clientX - rect.left) / rect.width;
+  video.currentTime = pct * video.duration;
+});
+
+/* ── VIDEO TIME UPDATE ── */
+video.addEventListener('timeupdate', () => {
+  if (!video.duration) return;
+  const pct = (video.currentTime / video.duration * 100).toFixed(3);
+  scrubberFill.style.width = pct+'%';
+  playtag.textContent = fmtFull(video.currentTime);
+});
+
+video.addEventListener('loadedmetadata', () => {
+  renderScrubberPips();
+  renderBookmarks();
+  video.play();
+});
+
+/* ── OVERLAY TOGGLE ── */
+function toggleOverlay() {
+  overlayVisible = !overlayVisible;
+  overlay.classList.toggle('visible', overlayVisible);
+  hint.classList.toggle('hide', overlayVisible);
+  if (overlayVisible) renderBookmarks();
+}
+
+/* ── HINT ── */
+function showHintBriefly() {
+  hint.style.opacity = '0.5';
+  clearTimeout(hintTimer);
+  hintTimer = setTimeout(() => { hint.style.opacity = '0'; }, 3000);
+}
+
+/* ── FILTER BUTTONS ── */
+document.getElementById('filterBtns').addEventListener('click', e => {
+  const btn = e.target.closest('.filter-btn');
+  if (!btn) return;
+  const a = btn.dataset.analyst;
+  if (activeFilters.has(a)) {
+    if (activeFilters.size === 1) return; // keep at least one
+    activeFilters.delete(a);
+    btn.classList.remove('active');
+  } else {
+    activeFilters.add(a);
+    btn.classList.add('active');
+  }
+  renderBookmarks();
+});
+
+/* ── EXPORT CSV ── */
+document.getElementById('exportBtn').addEventListener('click', () => {
+  if (!bookmarks.length) return;
+  const rows = ['Analyst,Timestamp,Seconds'];
+  bookmarks.forEach(b => rows.push(`${b.analyst},${fmtFull(b.time)},${b.time.toFixed(3)}`));
+  const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'videomark-bookmarks.csv'; a.click();
+});
+
+/* ── KEYBOARD ── */
+document.addEventListener('keydown', e => {
+  // don't fire on input elements
+  if (['INPUT','TEXTAREA'].includes(e.target.tagName)) return;
+
+  if (e.key === 'h' || e.key === 'H') { toggleOverlay(); return; }
+  if (e.key === ' ') {
+    e.preventDefault();
+    video.paused ? video.play() : video.pause();
+    return;
+  }
+  if (e.key === 'ArrowRight') { video.currentTime = Math.min(video.duration, video.currentTime + 5); return; }
+  if (e.key === 'ArrowLeft')  { video.currentTime = Math.max(0, video.currentTime - 5); return; }
+  if (e.key === 'f' || e.key === 'F') { video.requestFullscreen?.(); return; }
+
+  const analyst = ANALYSTS[e.key];
+  if (analyst) addBookmark(analyst);
+});
+</script>
+</body>
+</html>
