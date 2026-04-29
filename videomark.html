@@ -86,6 +86,23 @@
   }
   .drop-label strong { color: var(--text); font-weight: 500; display: block; margin-bottom: 4px; font-size: 13px; }
 
+  .open-session-btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.15em;
+    color: var(--text-dim);
+    background: none;
+    border: 1px solid var(--border-bright);
+    border-radius: 3px;
+    padding: 8px 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .open-session-btn:hover {
+    border-color: var(--A1);
+    color: var(--A1);
+  }
+
   .key-legend {
     display: flex; gap: 20px;
   }
@@ -322,10 +339,12 @@
     <input type="file" id="fileInput" accept="video/*">
     <div class="drop-icon">▶</div>
     <div class="drop-label">
-      <strong>Drop a video file here</strong>
-      or click to browse
+      <strong>Drop a video file to start fresh</strong>
+      or open a saved session folder below
     </div>
   </div>
+
+  <button class="open-session-btn" id="openSessionBtn">⊕ Open Session Folder</button>
 
   <div class="key-legend">
     <div class="analyst-pill">
@@ -371,7 +390,7 @@
   </div>
 
   <div class="overlay-header">
-    <div class="overlay-title">Bookmarks</div>
+    <div class="overlay-title">Bookmarks (Press h to show/hide this panel)</div>
     <div class="overlay-controls">
       <div class="filter-btns" id="filterBtns">
         <button class="filter-btn c-A1 active" data-analyst="A1">A1</button>
@@ -380,6 +399,7 @@
         <button class="filter-btn c-A4 active" data-analyst="A4">A4</button>
       </div>
       <button class="export-btn" id="exportBtn">↓ Export CSV</button>
+      <button class="export-btn" id="saveSessionBtn">↓ Save Session</button>
     </div>
   </div>
 
@@ -414,10 +434,100 @@ let hintTimer = null;
 let videoBaseName = 'videomark';
 let exportCount = 0;
 let hasUnexportedBookmarks = false;
+let videoDuration = 0;
+let pendingSession = false;
+let videoFile = null;
+
+/* ── ROUTES WHETHER IT IS A NEW VIDEO FILE OR REOPENING SESSION ── */
+function routeFile(file) {
+  if (!file) return;
+  loadFile(file);
+}
+
+/* ── LOAD PREVIOUSLY SAVED SESSION ── */
+function loadSession(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try{
+      const session = JSON.parse(e.target.result);
+      console.log(session['bookmarks'], Array.isArray(session.bookmarks));
+      if(!session.bookmarks || !Array.isArray(session.bookmarks)) {
+        alert('Invalid session file');
+        return;
+      }
+      bookmarks = session.bookmarks.map(b => ({...b, id: Date.now() + Math.random() }));
+      videoDuration = session.duration || 0;
+      videoBaseName = session.videoFile || 'restored';
+      hasUnexportedBookmarks = false;
+      pendingSession = true;
+      document.title = `VM - ${session.videoFile} (session restored)`
+      updateLoaderForVideoPrompt(session.videoFile);
+    } catch(e) {
+      alert('Could not read session file');
+    }
+  };
+  reader.readAsText(file);
+}
+
+async function openSession() {
+  let dirHandle;
+  try {
+    dirHandle = await window.showDirectoryPicker({ mode: 'read' });
+  } catch {
+    return; // user cancelled
+  }
+
+  // Read session.json
+  let session;
+  try {
+    const jsonHandle = await dirHandle.getFileHandle('session.json');
+    const jsonFile = await jsonHandle.getFile();
+    const text = await jsonFile.text();
+    session = JSON.parse(text);
+  } catch {
+    alert('No session.json found in that folder.');
+    return;
+  }
+
+  if (!session.bookmarks || !Array.isArray(session.bookmarks)) {
+    alert('Invalid session.json — missing bookmarks.');
+    return;
+  }
+
+  // Restore bookmarks + metadata
+  bookmarks = session.bookmarks.map(b => ({ ...b, id: Date.now() + Math.random() }));
+  videoDuration = session.duration || 0;
+  videoBaseName = session.videoFile?.replace(/\.[^.]+$/, '') || 'restored';
+  hasUnexportedBookmarks = false;
+  pendingSession = true;
+
+  // Find and load the video file from the same folder
+  try {
+    const vidHandle = await dirHandle.getFileHandle(session.videoFile);
+    const vidFile = await vidHandle.getFile();
+    loadFile(vidFile);
+    toggleOverlay();
+  } catch {
+    alert(`Session restored but could not find "${session.videoFile}" in the folder.\nDrop the video file manually to continue.`);
+    updateLoaderForVideoPrompt(session.videoFile);
+  }
+}
+
+function updateLoaderForVideoPrompt(name) {
+  document.querySelector('.drop-label').innerHTML = `
+    <strong>Session restored ✓</strong>
+    now drop the video file for <em>${name}</em>
+  `;
+  document.getElementById('fileInput').accept = 'video/*';
+  document.getElementById('openSessionBtn').style.display = 'none';
+  document.querySelector('.key-legend').style.display = 'none';
+  loader.classList.remove('hidden');
+}
 
 /* ── FILE LOAD ── */
 function loadFile(file) {
   if (!file || !file.type.startsWith('video/')) return;
+  videoFile = file;
   const url = URL.createObjectURL(file);
   video.src = url;
   video.load();
@@ -425,16 +535,23 @@ function loadFile(file) {
   videoLoaded = true;
   videoBaseName = file.name.replace(/\.[^/.]+$/, '');
   exportCount = 0;
-  document.title = `VM - ${file.name}`;
+  const wasSession = pendingSession;
+  if (!pendingSession) bookmarks = [];
+  pendingSession = false;
+  document.title = `VM — ${file.name}`;
+  document.getElementById('openSessionBtn').style.display = '';
+  document.querySelector('.key-legend').style.display = '';
   showHintBriefly();
+  if (!wasSession) video.play();
 }
 
-fileInput.addEventListener('change', e => loadFile(e.target.files[0]));
+fileInput.addEventListener('change', e => routeFile(e.target.files[0]));
+document.getElementById('openSessionBtn').addEventListener('click', openSession);
 dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
 dropZone.addEventListener('drop', e => {
   e.preventDefault(); dropZone.classList.remove('drag-over');
-  loadFile(e.dataTransfer.files[0]);
+  routeFile(e.dataTransfer.files[0]);
 });
 
 /* ── CURSOR AUTO-HIDE ── */
@@ -532,18 +649,19 @@ scrubberTrack.addEventListener('click', e => {
   video.currentTime = pct * video.duration;
 });
 
+// Store video duration for save and export
+video.addEventListener('loadedmetadata', e => {
+  videoDuration = video.duration;
+  renderScrubberPips();
+  renderBookmarks();
+})
+
 /* ── VIDEO TIME UPDATE ── */
 video.addEventListener('timeupdate', () => {
   if (!video.duration) return;
   const pct = (video.currentTime / video.duration * 100).toFixed(3);
   scrubberFill.style.width = pct+'%';
   playtag.textContent = fmtFull(video.currentTime);
-});
-
-video.addEventListener('loadedmetadata', () => {
-  renderScrubberPips();
-  renderBookmarks();
-  video.play();
 });
 
 /* ── OVERLAY TOGGLE ── */
@@ -590,6 +708,43 @@ document.getElementById('exportBtn').addEventListener('click', () => {
   a.download = `${videoBaseName}_${date}${suffix}.csv`; a.click();
   exportCount++;
   hasUnexportedBookmarks = false;
+});
+
+/* Save Session to enable export + restore */
+document.getElementById('saveSessionBtn').addEventListener('click', async () => {
+  if(!bookmarks.length || !videoFile) return;
+
+  let dirHandle;
+  try{
+    dirHandle = await window.showDirectoryPicker({mode: 'readwrite'});
+  } catch(e) {
+    return; //user cancelled
+  }
+
+  // Write session json file
+  const session = {
+    videoFile: videoFile.name,
+    duration: videoDuration,
+    exportedAt: new Date().toISOString(),
+    bookmarks: bookmarks.map(b => ({
+      analyst: b.analyst,
+      time: b.time,
+      timestamp: fmtFull(b.time),
+    }))
+  }
+  const jsonHandle = await dirHandle.getFileHandle(`session.json`, {create: true});
+  const jsonWriter = await jsonHandle.createWritable();
+  await jsonWriter.write(new Blob([JSON.stringify(session, null, 2)], { type: 'application/json' }));
+  await jsonWriter.close();
+
+  // Copy the video file to session folder
+  const videoHandle = await dirHandle.getFileHandle(videoFile.name, { create: true });
+  const videoWriter = await videoHandle.createWritable();
+  await videoWriter.write(videoFile);
+  await videoWriter.close();
+
+  hasUnexportedBookmarks = false;
+  alert(`Session saved to folder:\n• session.json\n• ${videoFile.name}`);
 });
 
 window.addEventListener('beforeunload', e => {
