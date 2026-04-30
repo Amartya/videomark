@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VideoMark — Multi-Analyst Review</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -45,8 +45,8 @@
   #loader.hidden { opacity: 0; pointer-events: none; }
 
   .logo {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 13px; font-weight: 600;
+    font-family: "Poppins", sans-serif;
+    font-size: 18px; font-weight: 600;
     letter-spacing: 0.25em;
     color: var(--text-dim);
     text-transform: uppercase;
@@ -54,8 +54,8 @@
   .logo span { color: var(--A1); }
 
   .drop-zone {
-    width: 420px; height: 260px;
-    border: 1.5px dashed var(--border-bright);
+    width: 600px; height: 400px;
+    border: 2px dashed var(--border-bright);
     border-radius: 4px;
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
@@ -73,23 +73,22 @@
     opacity: 0; cursor: pointer; width: 100%; height: 100%;
   }
   .drop-icon {
-    width: 44px; height: 44px;
+    width: 55px; height: 55px;
     border: 1.5px solid var(--border-bright);
     border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     color: var(--text-dim); font-size: 20px;
   }
   .drop-label {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 12px; color: var(--text-dim);
+    font-family: "Poppins", sans-serif;
+    font-size: 16px; color: var(--text-dim);
     text-align: center; line-height: 1.8;
   }
-  .drop-label strong { color: var(--text); font-weight: 500; display: block; margin-bottom: 4px; font-size: 13px; }
+  .drop-label strong { color: var(--text); font-weight: 500; display: block; margin-bottom: 4px; font-size: 16px; }
 
   .open-session-btn {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px; font-weight: 600;
-    letter-spacing: 0.15em;
+    font-family: "Poppins", sans-serif;
+    font-size: 16px; font-weight: 400;
     color: var(--text-dim);
     background: none;
     border: 1px solid var(--border-bright);
@@ -108,11 +107,11 @@
   }
   .analyst-pill {
     display: flex; align-items: center; gap: 8px;
-    font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+    font-family: "Poppins", sans-serif; font-size: 14px; font-weight: 400;
     color: var(--text-dim);
   }
   .analyst-pill .dot {
-    width: 8px; height: 8px; border-radius: 50%;
+    width: 10px; height: 10px; border-radius: 50%;
     flex-shrink: 0;
   }
   .analyst-pill kbd {
@@ -120,8 +119,8 @@
     border: 1px solid var(--border-bright);
     border-radius: 3px;
     padding: 1px 6px;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px; color: var(--text-dim);
+    font-family: "Poppins", sans-serif;
+    font-size: 14px; color: var(--text-dim);
     margin-left: 4px;
   }
 
@@ -144,8 +143,8 @@
     position: fixed;
     top: 50%; left: 50%;
     transform: translate(-50%, -50%);
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px; font-weight: 600;
+    font-family: "Poppins", sans-serif;
+    font-size: 12px; font-weight: 600;
     letter-spacing: 0.15em;
     padding: 6px 14px;
     border-radius: 3px;
@@ -200,8 +199,8 @@
     padding: 10px 20px 8px;
   }
   .overlay-title {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px; font-weight: 600;
+    font-family: "Poppins", sans-serif;
+    font-size: 14px; font-weight: 600;
     letter-spacing: 0.2em;
     color: var(--text-dim);
     text-transform: uppercase;
@@ -211,8 +210,8 @@
   }
   .filter-btns { display: flex; gap: 6px; }
   .filter-btn {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px; font-weight: 600;
+    font-family: "Poppins", sans-serif;
+    font-size: 12px; font-weight: 600;
     padding: 3px 9px; border-radius: 2px;
     border: 1px solid transparent;
     cursor: pointer;
@@ -222,8 +221,8 @@
   }
   .filter-btn.active { opacity: 1; border-color: currentColor; }
   .export-btn {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px; color: var(--text-dim);
+    font-family: "Poppins", sans-serif;
+    font-size: 14px; color: var(--text-dim);
     background: none; border: 1px solid var(--border-bright);
     border-radius: 2px; padding: 3px 10px;
     cursor: pointer; letter-spacing: 0.1em;
@@ -242,7 +241,7 @@
   .bookmark-list:empty::after {
     content: 'No bookmarks yet — press 1–4 to mark a moment';
     display: block;
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: "Poppins", sans-serif;
     font-size: 11px; color: var(--text-dim);
     padding: 10px 0;
   }
@@ -259,13 +258,13 @@
   .bookmark-row:last-child { border-bottom: none; }
 
   .bm-analyst {
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: "Poppins", sans-serif;
     font-size: 11px; font-weight: 600;
     letter-spacing: 0.1em;
     min-width: 28px;
   }
   .bm-ts {
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: "Poppins", sans-serif;
     font-size: 12px; color: var(--text);
     min-width: 68px;
   }
@@ -285,16 +284,31 @@
     min-width: 80px; text-align: right;
   }
   .bm-count {
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: "Poppins", sans-serif;
     font-size: 10px; color: var(--text-dim);
     min-width: 20px; text-align: right;
+  }
+
+  /* ── EDGE FLASH ── */
+  .edge-flash {
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 199;
+    border: 3px solid transparent;
+    border-radius: 0;
+    opacity: 0;
+    transition: opacity 0.05s;
+  }
+  .edge-flash.active {
+    opacity: 1;
+    transition: opacity 0s;
   }
 
   /* ── TOGGLE HINT ── */
   #hint {
     position: fixed; bottom: 14px; right: 18px;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px; color: var(--text-dim);
+    font-family: "Poppins", sans-serif;
+    font-size: 12px; color: var(--text-dim);
     letter-spacing: 0.12em;
     z-index: 60;
     pointer-events: none;
@@ -306,7 +320,7 @@
   /* ── PLAYBACK LABEL ── */
   #playtag {
     position: fixed; top: 16px; left: 20px;
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: "Poppins", sans-serif;
     font-size: 11px; color: rgba(255,255,255,0.35);
     letter-spacing: 0.12em;
     z-index: 60;
@@ -328,23 +342,24 @@
   .border-A3 { border-color: var(--A3); }
   .border-A4 { border-color: var(--A4); }
 </style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body>
+<body tabindex="0">
 
 <!-- LOAD SCREEN -->
 <div id="loader">
-  <div class="logo">Video<span>Mark</span> — Multi-Analyst Review</div>
+  <div class="logo">Video<span>Mark</span> | Multi-Analyst Review</div>
 
   <div class="drop-zone" id="dropZone">
     <input type="file" id="fileInput" accept="video/*">
     <div class="drop-icon">▶</div>
     <div class="drop-label">
-      <strong>Drop a video file to start fresh</strong>
+      <strong>Drop a video file to start a new session</strong>
       or open a saved session folder below
     </div>
   </div>
 
-  <button class="open-session-btn" id="openSessionBtn">⊕ Open Session Folder</button>
+  <button class="open-session-btn" id="openSessionBtn"> <i class="fa-regular fa-folder-open"></i> <span style="margin-left: 5px"> Open Session Folder </span></button>
 
   <div class="key-legend">
     <div class="analyst-pill">
@@ -375,6 +390,7 @@
 
 <!-- FLASH NOTIFICATION -->
 <div class="flash" id="flash"></div>
+<div class="edge-flash" id="edgeFlash"></div>
 
 <!-- PLAYBACK TIME TAG -->
 <div id="playtag">00:00:00</div>
@@ -398,7 +414,6 @@
         <button class="filter-btn c-A3 active" data-analyst="A3">A3</button>
         <button class="filter-btn c-A4 active" data-analyst="A4">A4</button>
       </div>
-      <button class="export-btn" id="exportBtn">↓ Export CSV</button>
       <button class="export-btn" id="saveSessionBtn">↓ Save Session</button>
     </div>
   </div>
@@ -432,7 +447,6 @@ let cursorTimer = null;
 let videoLoaded = false;
 let hintTimer = null;
 let videoBaseName = 'videomark';
-let exportCount = 0;
 let hasUnexportedBookmarks = false;
 let videoDuration = 0;
 let pendingSession = false;
@@ -534,7 +548,6 @@ function loadFile(file) {
   loader.classList.add('hidden');
   videoLoaded = true;
   videoBaseName = file.name.replace(/\.[^/.]+$/, '');
-  exportCount = 0;
   const wasSession = pendingSession;
   if (!pendingSession) bookmarks = [];
   pendingSession = false;
@@ -542,7 +555,8 @@ function loadFile(file) {
   document.getElementById('openSessionBtn').style.display = '';
   document.querySelector('.key-legend').style.display = '';
   showHintBriefly();
-  if (!wasSession) video.play();
+  document.body.focus(); // otherwise the focus remains on the input element
+  // if (!wasSession) video.play();
 }
 
 fileInput.addEventListener('change', e => routeFile(e.target.files[0]));
@@ -578,6 +592,19 @@ function fmtFull(s) {
   return `${String(Math.floor(s/3600)).padStart(2,'0')}:${String(Math.floor((s%3600)/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
 }
 
+/* ── EDGE FLASH ── */
+const edgeFlash = document.getElementById('edgeFlash');
+let edgeFlashTimer;
+
+function showEdgeFlash(analyst) {
+  const c = COLORS[analyst];
+  edgeFlash.style.borderColor = c;
+  edgeFlash.style.boxShadow = `inset 0 0 18px 2px ${c}55`;
+  edgeFlash.classList.add('active');
+  clearTimeout(edgeFlashTimer);
+  edgeFlashTimer = setTimeout(() => edgeFlash.classList.remove('active'), 750);
+}
+
 /* ── FLASH ── */
 let flashTimer;
 function showFlash(analyst) {
@@ -599,6 +626,7 @@ function addBookmark(analyst) {
   bookmarks.sort((a,b) => a.time - b.time);
   hasUnexportedBookmarks = true;
   showFlash(analyst);
+  showEdgeFlash(analyst);
   renderBookmarks();
   renderScrubberPips();
 }
@@ -657,6 +685,10 @@ video.addEventListener('loadedmetadata', e => {
 })
 
 /* ── VIDEO TIME UPDATE ── */
+video.addEventListener('click', () => {
+  video.paused ? video.play() : video.pause();
+});
+
 video.addEventListener('timeupdate', () => {
   if (!video.duration) return;
   const pct = (video.currentTime / video.duration * 100).toFixed(3);
@@ -695,21 +727,6 @@ document.getElementById('filterBtns').addEventListener('click', e => {
   renderBookmarks();
 });
 
-/* ── EXPORT CSV ── */
-document.getElementById('exportBtn').addEventListener('click', () => {
-  if (!bookmarks.length) return;
-  const rows = ['Analyst,Timestamp,Seconds'];
-  bookmarks.forEach(b => rows.push(`${b.analyst},${fmtFull(b.time)},${b.time.toFixed(3)}`));
-  const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
-  const d = new Date();
-  const date = `${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}-${d.getFullYear()}`;
-  const suffix = exportCount === 0 ? '' : `_${exportCount}`;
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-  a.download = `${videoBaseName}_${date}${suffix}.csv`; a.click();
-  exportCount++;
-  hasUnexportedBookmarks = false;
-});
-
 /* Save Session to enable export + restore */
 document.getElementById('saveSessionBtn').addEventListener('click', async () => {
   if(!bookmarks.length || !videoFile) return;
@@ -743,8 +760,16 @@ document.getElementById('saveSessionBtn').addEventListener('click', async () => 
   await videoWriter.write(videoFile);
   await videoWriter.close();
 
+  // Write CSV
+  const rows = ['Analyst, TimeStamp, Seconds'];
+  bookmarks.forEach(b => rows.push(`${b.analyst},${fmtFull(b.time)},${b.time.toFixed(3)}`));
+  const csvHandle = await dirHandle.getFileHandle(`${videoBaseName}_bookmarks.csv`, { create: true });
+  const csvWriter = await csvHandle.createWritable();
+  await csvWriter.write(new Blob([rows.join('\n')], { type: 'text/csv' }));
+  await csvWriter.close();
+
   hasUnexportedBookmarks = false;
-  alert(`Session saved to folder:\n• session.json\n• ${videoFile.name}`);
+  alert(`Session saved to folder:\n• session.json\n• ${videoBaseName}_bookmarks.csv\n• ${videoFile.name}`);
 });
 
 window.addEventListener('beforeunload', e => {
